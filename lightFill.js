@@ -2,21 +2,21 @@ const canvas = document.getElementById("canvas")
 const ctx = canvas.getContext("2d")
 
 const mapData = [
-    [0,0,0,0,0,0,1,0,0,0,0,1,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0],
-    [0,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,1,0,1,0],
+    [0,1,1,0,0,0,0,0,1,0,0,0,0,0,0],
+    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,0,0,0,0,0,0,1,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,0,0,0,0,0,0,0,1,0,1,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,1,0,0,1,0,0,0,0,0,0,0,0],
     [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [0,0,0,0,0,1,0,0,0,0,0,0,1,0,0],
+    [0,0,0,0,0,1,0,0,0,0,0,0,0,0,0]
 ]
 
 const eventPos = []
@@ -24,9 +24,7 @@ const eventPos = []
 const data = {
     size: 800 / mapData.length,
     count: 1000,
-    color: 'rgba(255,255,255,0.01)',
-    lineWidth: 10,
-    reflectCount: 0
+    color : 'rgba(250,250,100, 0.01)'
 }
 
 function isOver(value) {
@@ -54,15 +52,15 @@ function getHitWallPos(pos1, pos2, dir) {
 
         var isInX = [a[0] > p1[0] && a[0] < p2[0], b[0] > p1[0] && b[0] < p2[0]]
         var isInY = [a[1] > p1[1] && a[1] < p2[1], b[1] > p1[1] && b[1] < p2[1]]
-        var conX1 = a[0] <= p1[0] && b[0] >= p1[0]
-        var conX2 = a[0] <= p2[0] && b[0] >= p2[0]
-        var conY1 = a[1] <= p1[1] && b[1] >= p1[1]
-        var conY2 = a[1] <= p2[1] && b[1] >= p2[1]
+        var conX1 = a[0] < p1[0] && b[0] >= p1[0]
+        var conX2 = a[0] < p2[0] && b[0] >= p2[0]
+        var conY1 = a[1] < p1[1] && b[1] >= p1[1]
+        var conY2 = a[1] < p2[1] && b[1] >= p2[1]
         if ((conX1 || conX2) && isInY[0] && isInY[1]) {
-            return { pos: eventPos[i], axis: 0 }
+            return eventPos[i]
         }
         if ((conY1 || conY2) && isInX[0] && isInX[1]) {
-            return { pos: eventPos[i], axis: 1 }
+            return eventPos[i]
         }
     }
 }
@@ -85,7 +83,7 @@ class Vector {
         this.y += v.y
     }
     isOver() {
-        return [isOver(this.x), isOver(this.y)]
+        return isOver(this.x) || isOver(this.y)
     }
     toStr() {
         return `(${this.x}, ${this.y})`
@@ -112,32 +110,12 @@ class Light {
         var before = new Vector(this.x, this.y)
         ctx.beginPath()
         ctx.moveTo(this.x, this.y)
-        var tick = 0
 
-        while (true) {
-            var over = current.isOver()
-            if (over[0] || over[1]) {
-                if (over[0]) {
-                    dir.x *= -1
-                }
-                if (over[1]) {
-                    dir.y *= -1
-                }
-                tick++
-            }
-            if (tick > data.reflectCount) {
-                break
-            }
+        while (!current.isOver()) {
             current.add(dir)
             var hpos = getHitWallPos(before, current, dir)
             if (hpos) {
-                if (hpos.axis == 0) {
-                    dir.x *= -1
-                } else {
-                    dir.y *= -1
-                }
-                current.add(dir)
-                tick++
+                break
             }
             ctx.lineTo(current.x, current.y)
             before.x = current.x
@@ -149,22 +127,9 @@ class Light {
 }
 
 const light = [
-    new Light(400, 200),
-    new Light(500, 100),
+    new Light(300, 200),
+    new Light(300, 600),
 ]
-
-var seta_i = 0
-function renderLight() {
-    if (seta_i >= data.count) {
-        return
-    }
-    for (var j in light) {
-        light[j].draw(Math.PI * 2 / data.count * seta_i)
-    }
-    seta_i++
-    requestAnimationFrame(renderLight)
-}
-
 function render() {
     ctx.strokeStyle = 'white'
     for (var i in mapData) {
@@ -175,13 +140,12 @@ function render() {
             }
         }
     }
-    ctx.lineWidth = data.lineWidth
-    renderLight()
-    /*for (var j in light) {
+    for (var j in light) {
+        ctx.lineWidth = 7
         for (var i = 0; i < data.count; i++) {
             light[j].draw(Math.PI * 2 / data.count * i)
         }
-    } */
+    }
 }
 
 render()
